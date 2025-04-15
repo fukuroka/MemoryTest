@@ -1,9 +1,7 @@
 import random
-
 import pygame
 import pygame_gui
 import pygame_menu
-
 from src import statistic, consts
 
 pygame.init()
@@ -12,11 +10,14 @@ pygame.init()
 # --- Основной класс игры ---
 class Game:
     def __init__(self) -> None:
+        """
+        Инициализация игры, создание экрана, менеджера UI и статистики.
+        """
         self.screen = pygame.display.set_mode(
             (consts.GUIConsts.WIDTH, consts.GUIConsts.HEIGHT),
         )
         pygame.display.set_caption("Тест на запоминание")
-        self.font = pygame.font.Font('../static/comic_sans_ms.ttf', 18)
+        self.font = pygame.font.Font(consts.FileConsts.FONT_FILE, 18)
         self.running = True
         self.exit_button = None
         self.stats = statistic.StatsManager(consts.FileConsts.HISTORY_FILE)
@@ -28,11 +29,18 @@ class Game:
         self.screen.blit(self.background, (0, 0))
 
     def run(self) -> None:
+        """
+        Запуск игры, отображение начального экрана.
+        """
         self.welcome_screen()
 
     def welcome_screen(self) -> None:
+        """
+        Отображение приветственного экрана с кнопками 'Новая игра' и 'Статистика'.
+        """
         clock = pygame.time.Clock()
 
+        # Кнопки для новой игры и статистики
         new_game_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(
                 (consts.GUIConsts.WIDTH // 2 - 100, consts.GUIConsts.HEIGHT // 2 - 50), (200, 50)
@@ -49,6 +57,7 @@ class Game:
             manager=self.ui_manager,
         )
 
+        # Главный цикл ожидания событий
         while self.running:
             time_delta = clock.tick(60) / 1000.0
             for event in pygame.event.get():
@@ -56,6 +65,7 @@ class Game:
                     self.running = False
                 self.ui_manager.process_events(event)
 
+                # Обработка нажатий на кнопки
                 if event.type == pygame.USEREVENT:
                     if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                         if event.ui_element == new_game_button:
@@ -70,11 +80,17 @@ class Game:
             pygame.display.flip()
 
     def select_grid_size(self) -> None:
+        """
+        Экран выбора размера поля для игры.
+        """
         size_x = 3
         size_y = 3
         selecting = True
 
+        # Создание кнопки выхода
         self._create_exit_button()
+
+        # Ползунки для выбора ширины и высоты поля
         slider_width = pygame_gui.elements.UIHorizontalSlider(
             relative_rect=pygame.Rect(
                 (consts.GUIConsts.WIDTH // 2 - 125, consts.GUIConsts.HEIGHT // 2 - 90), (260, 33)
@@ -92,6 +108,7 @@ class Game:
             manager=self.ui_manager,
         )
 
+        # Лейблы для отображения текущего значения ползунков
         label_width = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(
                 (consts.GUIConsts.WIDTH // 2 - 150, consts.GUIConsts.HEIGHT // 2 - 130), (300, 25)
@@ -107,6 +124,7 @@ class Game:
             manager=self.ui_manager,
         )
 
+        # Кнопка для начала игры
         start_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(
                 (consts.GUIConsts.WIDTH // 2 - 100, consts.GUIConsts.HEIGHT // 2 + 70), (200, 50)
@@ -140,7 +158,7 @@ class Game:
                             selecting = False
                         if event.ui_element == self.exit_button:
                             level_running = False
-                            self.__clear_screen([self.exit_button, slider_width,slider_height,label_width,label_height,start_button])
+                            self.__clear_screen([self.exit_button, slider_width, slider_height, label_width, label_height, start_button])
                             self.welcome_screen()
                             return
 
@@ -156,7 +174,9 @@ class Game:
             self.start_game(size_x, size_y, num_circles=1, wins=0, errors=0, streak=0)
 
     def show_statistics(self) -> None:
-        # Используем pygame_menu для красивого вывода статистики
+        """
+        Отображение статистики игры через pygame_menu.
+        """
         custom_theme = pygame_menu.themes.Theme(
             background_color=consts.GUIConsts.BACKGROUND,
             title_background_color=consts.GUIConsts.BACKGROUND,
@@ -180,14 +200,12 @@ class Game:
             menu.add.label("Нет данных", font_size=30)
         else:
             for i, entry in enumerate(history):
-                # Собираем текст с данными из статистики
                 text = (
                     f"Игра {i + 1} | {entry['datetime']} | Результат: {entry['result']}\n"
                     f"Размер поля: {entry['grid_size']} | Кружков: {entry['num_circles']}\n"
                     f"Счет: {entry['score']} | Серия: {entry['streak']}\n"
                     f"Выбранные клетки: {entry['selected']}"
                 )
-                # Добавляем фрейм для каждой записи с небольшим отступом
                 game_frame = menu.add.frame_v(
                     width=consts.GUIConsts.WIDTH - 80,
                     height=140,
@@ -211,17 +229,22 @@ class Game:
         errors: int,
         streak: int,
     ) -> None:
+        """
+        Основной игровой процесс. Отображение сетки, появление кружков, обработка выбора.
+        """
         clock = pygame.time.Clock()
         time_delta = clock.tick(60) / 1000.0
         cell_width = consts.GUIConsts.WIDTH / size_x
         cell_height = consts.GUIConsts.HEIGHT / size_y
         circle_radius = int(min(cell_width, cell_height) / 3)
 
+        # Генерация случайных позиций для кружков
         possible_positions = [(x, y) for x in range(size_x) for y in range(size_y)]
         circles = random.sample(possible_positions, num_circles)
         selected_positions = []
 
         self.screen.fill(consts.GUIConsts.BACKGROUND)
+        # Отображение сетки
         for x in range(size_x):
             for y in range(size_y):
                 rect = pygame.Rect(
@@ -231,6 +254,7 @@ class Game:
                     cell_height,
                 )
                 pygame.draw.rect(self.screen, consts.GUIConsts.GRID_COLOR, rect, 1)
+        # Отображение кружков
         for cx, cy in circles:
             pygame.draw.circle(
                 self.screen,
@@ -251,7 +275,7 @@ class Game:
         )
         record_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 850, 35), (200, 50)),
-            text=f"Рекорд: {self.stats.get_max_streak()}",
+            text=f"Рекорд: {self.stats.get_record()}",
             manager=self.ui_manager,
         )
         self._create_exit_button()
@@ -259,6 +283,7 @@ class Game:
         level_running = True
         while level_running:
             self.screen.fill(consts.GUIConsts.BACKGROUND)
+            # Отображение сетки
             for x in range(size_x):
                 for y in range(size_y):
                     pygame.draw.rect(
@@ -272,6 +297,7 @@ class Game:
                         ),
                         1,
                     )
+            # Отображение выбранных позиций
             for sx, sy in selected_positions:
                 color = consts.GUIConsts.BLUE if (sx, sy) in circles else consts.GUIConsts.RED
                 pygame.draw.circle(
@@ -320,6 +346,7 @@ class Game:
                     )
                     pygame.display.flip()
 
+                    # Обработка ошибок и выигрыша
                     if color == consts.GUIConsts.RED:
                         streak = 0
                         pygame.time.delay(800)
@@ -346,7 +373,9 @@ class Game:
                         return
 
     def _create_exit_button(self) -> pygame_gui.elements.UIButton:
-        """Создаёт и возвращает кнопку выхода."""
+        """
+        Создание кнопки для выхода из игры.
+        """
         self.exit_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 50, 5), (40, 40)),
             text="X",
@@ -355,6 +384,9 @@ class Game:
 
     @staticmethod
     def __clear_screen(elements: list) -> None:
+        """
+        Очистка списка элементов на экране.
+        """
         [element.kill() for element in elements]
 
 
