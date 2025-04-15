@@ -5,6 +5,7 @@ from typing import List, Tuple
 
 import pygame
 import pygame_gui
+import pygame_menu
 
 import consts
 
@@ -76,6 +77,7 @@ class Game:
         pygame.display.set_caption("Тест на запоминание")
         self.font = pygame.font.Font(None, 36)
         self.running = True
+        self.exit_button = None
         self.stats = StatsManager()
         self.ui_manager = pygame_gui.UIManager(
             (consts.GUIConsts.WIDTH, consts.GUIConsts.HEIGHT), consts.FileConsts.THEME_FILE
@@ -83,7 +85,6 @@ class Game:
         self.background = pygame.Surface((consts.GUIConsts.WIDTH, consts.GUIConsts.HEIGHT))
         self.background.fill(consts.GUIConsts.BACKGROUND)
         self.screen.blit(self.background, (0, 0))
-
 
     def run(self) -> None:
         self.welcome_screen()
@@ -121,9 +122,7 @@ class Game:
                             self.select_grid_size()
                             return
                         elif event.ui_element == stats_button:
-                            self.__clear_screen([stats_button])
                             self.show_statistics()
-
             self.ui_manager.update(time_delta)
             self.screen.fill(consts.GUIConsts.BACKGROUND)
             self.ui_manager.draw_ui(self.screen)
@@ -134,6 +133,7 @@ class Game:
         size_y = 3
         selecting = True
 
+        self._create_exit_button()
         slider_width = pygame_gui.elements.UIHorizontalSlider(
             relative_rect=pygame.Rect(
                 (consts.GUIConsts.WIDTH // 2 - 150, consts.GUIConsts.HEIGHT // 2 - 100), (300, 30)
@@ -197,6 +197,11 @@ class Game:
                             size_x = int(slider_width.get_current_value())
                             size_y = int(slider_height.get_current_value())
                             selecting = False
+                        if event.ui_element == self.exit_button:
+                            level_running = False
+                            self.__clear_screen([self.exit_button, slider_width,slider_height,label_width,label_height,start_button])
+                            self.welcome_screen()
+                            return
 
             self.ui_manager.update(time_delta)
             self.screen.fill(consts.GUIConsts.BACKGROUND)
@@ -205,73 +210,45 @@ class Game:
 
         if self.running:
             self.__clear_screen(
-                [   slider_width,
-                    slider_height,
-                    label_width,
-                    label_height,
-                    start_button,
-                ]
+                [slider_width, slider_height, label_width, label_height, start_button, self.exit_button]
             )
             self.start_game(size_x, size_y, num_circles=1, wins=0, errors=0, streak=0)
 
     def show_statistics(self) -> None:
-        # Получаем статистику за последние 10 минут
-        recent_entries = self.stats.get_recent_history(10)
-
-        if not recent_entries:
-            self.screen.fill(consts.GUIConsts.BACKGROUND)
-            no_data_text = self.font.render("Нет данных за последние 10 минут.", True, consts.GUIConsts.BLACK)
-            self.screen.blit(no_data_text, (consts.GUIConsts.WIDTH // 2 - 150, consts.GUIConsts.HEIGHT // 2))
-            pygame.display.flip()
-            pygame.time.delay(2000)
-            self.welcome_screen()
-            return
-
-        self.screen.fill(consts.GUIConsts.BACKGROUND)
-
-        table_headers = ["Дата", "Размер", "Кружков", "Результат", "Рекорд"]
-        column_widths = [200, 100, 100, 100, 80]
-        font = pygame.font.Font(None, 24)
-
-        # Рисуем заголовки таблицы
-        y_offset = 50
-        for i, header in enumerate(table_headers):
-            header_text = font.render(header, True, consts.GUIConsts.BLACK)
-            self.screen.blit(header_text, (50 + sum(column_widths[:i]), y_offset))
-
-        # Рисуем линии сетки
-        y_offset += 30
-        for i in range(1, len(table_headers)):
-            pygame.draw.line(
-                self.screen,
-                consts.GUIConsts.BLACK,
-                (40 + sum(column_widths[:i]), 50),
-                (40 + sum(column_widths[:i]), y_offset + len(recent_entries) * 30),
-                1,
-            )
-
-        # Рисуем строки таблицы
-        for entry in recent_entries:
-            row = [
-                entry["datetime"],
-                entry["grid_size"],
-                str(entry["num_circles"]),
-                entry["result"],
-                str(entry["streak"]),
-            ]
-            for i, cell in enumerate(row):
-                cell_text = font.render(cell, True, consts.GUIConsts.BLACK)
-                self.screen.blit(cell_text, (50 + sum(column_widths[:i]), y_offset))
-            y_offset += 30
-
-        # Рисуем горизонтальные линии
-        pygame.draw.line(
-            self.screen, consts.GUIConsts.BLACK, (50, y_offset), (50 + sum(column_widths), y_offset), 1
+        # Используем pygame_menu для красивого вывода статистики
+        menu = pygame_menu.Menu(
+            title="",
+            width=consts.GUIConsts.WIDTH,
+            height=consts.GUIConsts.HEIGHT,
+            theme=pygame_menu.themes.THEME_DARK,
+            onclose=pygame_menu.events.BACK,
         )
 
-        pygame.display.flip()
-        pygame.time.delay(5000)
-        self.welcome_screen()
+        recent_entries = self.stats.get_recent_history(10)
+        if not recent_entries:
+            menu.add.label("Нет данных за последние 10 минут", font_size=30)
+        else:
+            for i, entry in enumerate(recent_entries):
+                # Собираем текст с данными из статистики
+                text = (
+                    f"Игра {i + 1} | {entry['datetime']} | Результат: {entry['result']}\n"
+                    f"Размер поля: {entry['grid_size']} | Кружков: {entry['num_circles']}\n"
+                    f"Счет: {entry['score']} | Серия: {entry['streak']}\n"
+                    f"Выбранные клетки: {entry['selected']}"
+                )
+                # Добавляем фрейм для каждой записи с небольшим отступом
+                game_frame = menu.add.frame_v(
+                    width=consts.GUIConsts.WIDTH - 80,
+                    height=140,
+                    background_color=(60, 60, 60),
+                    padding=10,
+                )
+                game_frame.pack(
+                    menu.add.label(text, font_size=20, wordwrap=True),
+                    align=pygame_menu.locals.ALIGN_LEFT,
+                )
+
+        menu.mainloop(self.screen)
 
     def start_game(
         self,
@@ -282,7 +259,6 @@ class Game:
         errors: int,
         streak: int,
     ) -> None:
-        # Вычисляем размеры ячейки так, чтобы сетка занимала весь экран
         clock = pygame.time.Clock()
         time_delta = clock.tick(60) / 1000.0
         cell_width = consts.GUIConsts.WIDTH / size_x
@@ -316,10 +292,21 @@ class Game:
         pygame.display.flip()
         pygame.time.delay(800)
 
+        score_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 840, 0), (200, 50)),
+            text=f"Выиграно: {wins}",
+            manager=self.ui_manager,
+        )
+        record_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 850, 35), (200, 50)),
+            text=f"Рекорд: {self.stats.get_max_streak()}",
+            manager=self.ui_manager,
+        )
+        self._create_exit_button()
+
         level_running = True
         while level_running:
             self.screen.fill(consts.GUIConsts.BACKGROUND)
-            # Рисуем сетку
             for x in range(size_x):
                 for y in range(size_y):
                     pygame.draw.rect(
@@ -333,7 +320,6 @@ class Game:
                         ),
                         1,
                     )
-            # Рисуем выбранные кружки
             for sx, sy in selected_positions:
                 color = consts.GUIConsts.BLUE if (sx, sy) in circles else consts.GUIConsts.RED
                 pygame.draw.circle(
@@ -346,26 +332,26 @@ class Game:
                     circle_radius,
                 )
 
-            score_label = pygame_gui.elements.UILabel(
-                relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 190, 5), (200, 50)),
-                text=f"Выиграно: {wins}",
-                manager=self.ui_manager,
-            )
-            record_label = pygame_gui.elements.UILabel(
-                relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 200, 45), (200, 50)),
-                text=f"Рекорд: {self.stats.get_max_streak()}",
-                manager=self.ui_manager,
-            )
             self.ui_manager.update(time_delta)
             self.ui_manager.draw_ui(self.screen)
             pygame.display.flip()
-            self.__clear_screen([score_label, record_label])
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     level_running = False
                     self.running = False
                     return
+
                 elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.exit_button.get_abs_rect().collidepoint(event.pos):
+                        level_running = False
+                        self.__clear_screen([score_label, record_label, self.exit_button])
+                        self.screen.fill(consts.GUIConsts.BACKGROUND)
+                        self.ui_manager.update(time_delta)
+                        self.ui_manager.draw_ui(self.screen)
+                        pygame.display.flip()
+                        self.welcome_screen()
+                        return
                     x = int(event.pos[0] // cell_width)
                     y = int(event.pos[1] // cell_height)
                     if (x, y) not in selected_positions:
@@ -382,7 +368,6 @@ class Game:
                     )
                     pygame.display.flip()
 
-                    # Если выбрана неправильная клетка, уровень провален
                     if color == consts.GUIConsts.RED:
                         streak = 0
                         pygame.time.delay(800)
@@ -392,10 +377,10 @@ class Game:
                         self.stats.record(
                             size_x, size_y, num_circles, circles, selected_positions, wins, streak, "loss"
                         )
+                        self.__clear_screen([score_label, record_label, self.exit_button])
                         self.start_game(size_x, size_y, num_circles, wins, errors, streak)
                         return
 
-                    # Если выбранные клетки совпадают с кружками, уровень пройден
                     if set(selected_positions) == set(circles):
                         streak += 1
                         pygame.time.delay(800)
@@ -404,8 +389,17 @@ class Game:
                         num_circles += 1
                         errors = 0
                         self.stats.history = self.stats.load_history()  # Обновляем историю
+                        self.__clear_screen([score_label, record_label, self.exit_button])
                         self.start_game(size_x, size_y, num_circles, wins, errors, streak)
                         return
+
+    def _create_exit_button(self) -> pygame_gui.elements.UIButton:
+        """Создаёт и возвращает кнопку выхода."""
+        self.exit_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 50, 5), (45, 45)),
+            text="X",
+            manager=self.ui_manager,
+        )
 
     @staticmethod
     def __clear_screen(elements: list) -> None:
