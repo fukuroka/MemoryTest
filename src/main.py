@@ -77,7 +77,7 @@ class Game:
         self._create_exit_button()
         slider_width = pygame_gui.elements.UIHorizontalSlider(
             relative_rect=pygame.Rect(
-                (consts.GUIConsts.WIDTH // 2 - 150, consts.GUIConsts.HEIGHT // 2 - 100), (300, 30)
+                (consts.GUIConsts.WIDTH // 2 - 125, consts.GUIConsts.HEIGHT // 2 - 90), (260, 33)
             ),
             start_value=3,
             value_range=(2, 10),
@@ -85,7 +85,7 @@ class Game:
         )
         slider_height = pygame_gui.elements.UIHorizontalSlider(
             relative_rect=pygame.Rect(
-                (consts.GUIConsts.WIDTH // 2 - 150, consts.GUIConsts.HEIGHT // 2 - 30), (300, 30)
+                (consts.GUIConsts.WIDTH // 2 - 125, consts.GUIConsts.HEIGHT // 2), (260, 33)
             ),
             start_value=3,
             value_range=(2, 10),
@@ -101,7 +101,7 @@ class Game:
         )
         label_height = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(
-                (consts.GUIConsts.WIDTH // 2 - 150, consts.GUIConsts.HEIGHT // 2 - 60), (300, 25)
+                (consts.GUIConsts.WIDTH // 2 - 150, consts.GUIConsts.HEIGHT // 2 - 40), (300, 25)
             ),
             text="Высота поля: 3",
             manager=self.ui_manager,
@@ -109,7 +109,7 @@ class Game:
 
         start_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(
-                (consts.GUIConsts.WIDTH // 2 - 100, consts.GUIConsts.HEIGHT // 2 + 50), (200, 50)
+                (consts.GUIConsts.WIDTH // 2 - 100, consts.GUIConsts.HEIGHT // 2 + 70), (200, 50)
             ),
             text="Начать",
             manager=self.ui_manager,
