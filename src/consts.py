@@ -2,6 +2,8 @@ class GUIConsts:
 
     WIDTH, HEIGHT = 800, 600
     BACKGROUND = (166,186,159)
+    WIDGET_BACKGROUND = (44, 84,52)
+    WHITE = (255,255,255)
     BLACK = (0, 0, 0)
     BLUE = (0, 0, 255)
     RED = (255, 0, 0)

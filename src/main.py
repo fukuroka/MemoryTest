@@ -14,7 +14,7 @@ pygame.init()
 
 # --- Класс для работы со статистикой ---
 class StatsManager:
-    def __init__(self, history_file: str = consts.FileConsts.HISTORY_FILE) -> None:
+    def __init__(self, history_file: str) -> None:
         self.history_file = history_file
         self.history = self.load_history()
 
@@ -56,17 +56,6 @@ class StatsManager:
     def get_max_streak(self) -> int:
         return max((record.get("streak", 0) for record in self.history), default=0)
 
-    def get_recent_history(self, minutes: int = 10) -> list[dict]:
-        # Фильтрация по времени: последние 'minutes' минут
-        now = datetime.datetime.now()
-        cutoff_time = now - datetime.timedelta(minutes=minutes)
-        recent_history = [
-            entry
-            for entry in self.history
-            if datetime.datetime.strptime(entry["datetime"], "%Y-%m-%d %H:%M:%S") > cutoff_time
-        ]
-        return recent_history
-
 
 # --- Основной класс игры ---
 class Game:
@@ -75,10 +64,10 @@ class Game:
             (consts.GUIConsts.WIDTH, consts.GUIConsts.HEIGHT),
         )
         pygame.display.set_caption("Тест на запоминание")
-        self.font = pygame.font.Font(None, 36)
+        self.font = pygame.font.Font('../static/comic_sans_ms.ttf', 18)
         self.running = True
         self.exit_button = None
-        self.stats = StatsManager()
+        self.stats = StatsManager(consts.FileConsts.HISTORY_FILE)
         self.ui_manager = pygame_gui.UIManager(
             (consts.GUIConsts.WIDTH, consts.GUIConsts.HEIGHT), consts.FileConsts.THEME_FILE
         )
@@ -216,19 +205,29 @@ class Game:
 
     def show_statistics(self) -> None:
         # Используем pygame_menu для красивого вывода статистики
+        custom_theme = pygame_menu.themes.Theme(
+            background_color=consts.GUIConsts.BACKGROUND,
+            title_background_color=consts.GUIConsts.BACKGROUND,
+            widget_font=self.font,
+            widget_font_color=consts.GUIConsts.WHITE,
+            widget_background_color=consts.GUIConsts.WIDGET_BACKGROUND,
+            widget_selection_effect=pygame_menu.widgets.HighlightSelection(),
+            widget_padding=10,
+        )
+
         menu = pygame_menu.Menu(
             title="",
             width=consts.GUIConsts.WIDTH,
             height=consts.GUIConsts.HEIGHT,
-            theme=pygame_menu.themes.THEME_DARK,
+            theme=custom_theme,
             onclose=pygame_menu.events.BACK,
         )
 
-        recent_entries = self.stats.get_recent_history(10)
-        if not recent_entries:
-            menu.add.label("Нет данных за последние 10 минут", font_size=30)
+        history = self.stats.history
+        if not history:
+            menu.add.label("Нет данных", font_size=30)
         else:
-            for i, entry in enumerate(recent_entries):
+            for i, entry in enumerate(history):
                 # Собираем текст с данными из статистики
                 text = (
                     f"Игра {i + 1} | {entry['datetime']} | Результат: {entry['result']}\n"
@@ -240,9 +239,10 @@ class Game:
                 game_frame = menu.add.frame_v(
                     width=consts.GUIConsts.WIDTH - 80,
                     height=140,
-                    background_color=(60, 60, 60),
+                    background_color=consts.GUIConsts.WIDGET_BACKGROUND,
                     padding=10,
                 )
+                game_frame._relax = True
                 game_frame.pack(
                     menu.add.label(text, font_size=20, wordwrap=True),
                     align=pygame_menu.locals.ALIGN_LEFT,
