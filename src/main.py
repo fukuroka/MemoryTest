@@ -1,60 +1,12 @@
-import datetime
-import json
 import random
-from typing import List, Tuple
 
 import pygame
 import pygame_gui
 import pygame_menu
 
-import consts
+from src import statistic, consts
 
 pygame.init()
-
-
-# --- Класс для работы со статистикой ---
-class StatsManager:
-    def __init__(self, history_file: str) -> None:
-        self.history_file = history_file
-        self.history = self.load_history()
-
-    def load_history(self) -> list[dict]:
-        try:
-            with open(self.history_file) as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return []
-
-    def save_history(self) -> None:
-        with open(self.history_file, "w") as f:
-            json.dump(self.history, f, indent=4)
-
-    def record(
-        self,
-        size_x: int,
-        size_y: int,
-        num_circles: int,
-        circles: list[tuple[int, int]],
-        selected_positions: list[tuple[int, int]],
-        wins: int,
-        streak: int,
-        level_result: str,
-    ) -> None:
-        record = {
-            "datetime": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "grid_size": f"{size_x}x{size_y}",
-            "num_circles": num_circles,
-            "circles": circles,
-            "selected": selected_positions,
-            "score": wins,
-            "streak": streak,
-            "result": level_result,
-        }
-        self.history.append(record)
-        self.save_history()
-
-    def get_max_streak(self) -> int:
-        return max((record.get("streak", 0) for record in self.history), default=0)
 
 
 # --- Основной класс игры ---
@@ -67,7 +19,7 @@ class Game:
         self.font = pygame.font.Font('../static/comic_sans_ms.ttf', 18)
         self.running = True
         self.exit_button = None
-        self.stats = StatsManager(consts.FileConsts.HISTORY_FILE)
+        self.stats = statistic.StatsManager(consts.FileConsts.HISTORY_FILE)
         self.ui_manager = pygame_gui.UIManager(
             (consts.GUIConsts.WIDTH, consts.GUIConsts.HEIGHT), consts.FileConsts.THEME_FILE
         )
@@ -396,7 +348,7 @@ class Game:
     def _create_exit_button(self) -> pygame_gui.elements.UIButton:
         """Создаёт и возвращает кнопку выхода."""
         self.exit_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 50, 5), (45, 45)),
+            relative_rect=pygame.Rect((consts.GUIConsts.WIDTH - 50, 5), (40, 40)),
             text="X",
             manager=self.ui_manager,
         )

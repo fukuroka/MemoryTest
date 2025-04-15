@@ -1,17 +1,21 @@
 {
     "button": {
-         "font":
-         {
-             "name": "Comic Sans MS",
-             "size": "16",
-             "bold": "0",
-             "italic": "0"
-         },
+        "font": {
+            "name": "Comic Sans MS",
+            "size": "16",
+            "bold": "0",
+            "italic": "0"
+        },
         "colours": {
             "normal_bg": "#378a3f",
             "hovered_bg": "#7ca680",
             "active_bg": "#1f3621"
-        }
+        },
+         "misc":
+         {
+             "shape": "rounded_rectangle",
+             "shape_corner_radius": "10,10,10,10"
+         }
     },
     "horizontal_slider": {
         "colours": {
